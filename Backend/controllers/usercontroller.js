@@ -73,8 +73,7 @@ res.status(200).json({message:'user email verified successfully', user})
 export const loginUser = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.json({
-      status: 400,
+    return res.status(400).json({
       message: "error while validating the user login",
       errors: errors.array(),
     });
@@ -86,6 +85,9 @@ export const loginUser = async (req, res) => {
   if (!user) {
     return res.json({ status: 400, message: "user not found please register" });
   }
+  if (!user.emailVerified) {
+    return res.status(400).json({ message: "Email is not verified" });
+  }
   const ismatch = await bcrypt.compare(password, user.password);
   if (!ismatch) {
     return res.json({ status: 400, message: "user password is wrong" });
@@ -93,11 +95,16 @@ export const loginUser = async (req, res) => {
   const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
 
   res.cookie("token", token);
-  res.json({ status: 201, message: "user loggedIn successfully", token, user });
+  res.status(201).json({
+    message: "user loggedIn successfully",
+    token,
+    user,
+  });
+  
 };
 
 export const logoutUser = async (req, res) => {
-  const token = req.cookies.token;
+  const token = req.cookies.token || req.headers.authorization;
   if (!token) {
     return res.status(400).json({ message: "user token not found" });
   }
@@ -105,6 +112,27 @@ export const logoutUser = async (req, res) => {
   res.clearCookie("token", token);
   res.status(200).json({ message: "user LoggedOut successfully" });
 };
+
+export const requestPasswordChange = async (req,res)=>{
+  const {email} =req.body
+
+  const user= await User.findOne({email})
+  if(!user || !user.emailVerified){
+    return res.status(401).json({message:'email is not found'})
+  }
+  const generateCode = Math.floor(100000+Math.random()*900000)
+  user.verificationCode=generateCode;
+  user.verificationExpires=Date.now() + 10 * 60 * 1000;
+  await user.save()
+  const sendcode = await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to:user.email,
+    subject:'verify email for changing of your password',
+    html: `<p>Your verification code is <b>${generateCode}</b>. It will expire in 10 minutes.</p>`
+  })
+
+res.status(200).json({message:'verification code sent successfully'})
+}
 
 export const changePassword = async (req, res) => {
   const { email, oldPassword, newPassword } = req.body;

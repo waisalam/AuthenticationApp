@@ -7,7 +7,11 @@ import { dbConnect } from './connectToDB.js';
 import userRoutes from './userRoutes/userRoutes.js'
 
  const app= express()
- app.use(cors())
+ const corsOptions = {
+    origin: 'http://localhost:5173',  // Only allow the frontend URL
+    credentials: true,  // Allow cookies (such as JWT token) to be sent along with requests
+  };
+ app.use(cors(corsOptions))
  app.use(cookieParser())
  app.use(express.json())
  dbConnect()

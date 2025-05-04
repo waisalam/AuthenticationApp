@@ -1,5 +1,5 @@
 import express from 'express'
-import { changePassword, loginUser, logoutUser, registerUser, verifyUserEmail } from '../controllers/usercontroller.js'
+import { changePassword, loginUser, logoutUser,registerUser, requestPasswordChange, verifyUserEmail } from '../controllers/usercontroller.js'
 import { body } from 'express-validator';
 
 const router = express.Router();
@@ -19,6 +19,7 @@ router.post('/login',[
     ],loginUser)
 
     router.post('/logout',logoutUser)
+    router.post('/otp', requestPasswordChange)
 
     router.post('/change-password',changePassword)
 
